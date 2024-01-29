@@ -6,6 +6,11 @@ const Arguments = @import("arguments.zig").Arguments;
 const LinkedList = @import("linkedlist.zig").LinkedList;
 const Parser = @import("parser.zig").Parser;
 
+const Arg = enum {
+    index,
+    argc,
+};
+
 pub const Argsv = struct {
     ll: LinkedList,
     argc: usize, // Same as C/C++ argc. It is total number of argument count.
@@ -124,8 +129,17 @@ pub const Argsv = struct {
         return self.argc;
     }
 
+    pub fn getCommonArgc(self: *Self) usize {
+        if (self.ll.size() > 0) {
+            var argument: Arguments = self.ll.getLink(1);
+            return argument.getIndex();
+        } else {
+            return self.getArgc();
+        }
+    }
+
     pub fn getLength(self: *Self) usize {
-        return self.ll.getLength();
+        return self.ll.size();
     }
 
     pub fn new(allocator: ?*std.mem.Allocator) !Self {

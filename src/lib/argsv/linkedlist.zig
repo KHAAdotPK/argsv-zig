@@ -100,8 +100,31 @@ pub const LinkedList = struct {
         return self.length;
     }
 
+    pub fn getLink(self: *LinkedList, j: usize) Arguments {
+        if (j > self.size()) {
+            return Arguments{ .i = 0, .l = 0, .t = 0, .n = 0, .next = null, .prev = null };
+        }
+
+        var i: usize = 1;
+        var current: *Arguments = self.arguments.?;
+        while (true) {
+            if (i == j) {
+                return current.*;
+            }
+
+            if (current.next == null) {
+                break;
+            }
+
+            i = i + 1;
+            current = current.next.?;
+        }
+
+        return Arguments{ .i = 0, .l = 0, .t = 0, .n = 0, .next = null, .prev = null };
+    }
+
     pub fn size(self: *LinkedList) usize {
-        return self.length;
+        return self.getLength();
     }
 
     // Only optionals can compare to null.
