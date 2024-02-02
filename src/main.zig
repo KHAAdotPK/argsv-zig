@@ -2,7 +2,7 @@
 // Q@khaa.pk
 
 const std = @import("std");
-const Argsv = @import("argsv/argsv.zig").Argsv;
+const Argsv = @import("./lib/argsv/argsv.zig").Argsv;
 
 const commands = "h,-h,(Displays the help screen)\nv,-v,verbose,(Does the detailed output)\n";
 
@@ -21,26 +21,42 @@ pub fn main() !void {
 
     // Instantiate command line processor
     // TODO, should be made into one function call by the name of Argsv::init()
-    var argsv = try Argsv.new(&arenaAllocator);
+    //var argsv = try Argsv.new(&arenaAllocator);
+    var argsv = Argsv.new(&arenaAllocator);
+
     //var argsv = try Argsv.new();
     //_ = try argsv.build(&args, commands);
-    _ = try argsv.build(commands);
-    std.debug.print(" Argc = {} \n", .{argsv.getArgc()});
+    //_ = try argsv.build(commands);
+    argsv.build(commands);
+    std.debug.print("Argc = {} \n", .{argsv.getArgc()});
     //_ = try argsv.add();
     argsv.traverse();
 
+    std.debug.print("Number of common arguments = {}\n", .{argsv.getCommonArgc()});
+
     // Returns an instance/s of Argsv for help command line option
-    var argsvForHelp = try argsv.find(commands, "h");
-    std.debug.print(" Length = {} \n", .{argsvForHelp.getLength()});
+    //var argsvForHelp = try argsv.find(commands, "h");
+    var argsvForHelp = argsv.find(commands, "h");
+    std.debug.print("Length(Length of linked list a.k.a total types of command line options) = {} \n", .{argsvForHelp.getLength()});
     argsvForHelp.traverse();
 
     // Returns an instance/s of Argsv for verpose command line option
-    var argsvForVerbose = try argsv.find(commands, "v");
-    std.debug.print(" Length = {} \n", .{argsvForVerbose.getLength()});
+    //var argsvForVerbose = try argsv.find(commands, "v");
+    var argsvForVerbose = argsv.find(commands, "v");
+    //std.debug.print("Length = {} \n", .{argsvForVerbose.getLength()});
+    std.debug.print("Length(Length of linked list a.k.a total types of command line options) = {} \n", .{argsvForVerbose.getLength()});
     argsvForVerbose.traverse();
 
     // Returns an instance/s of Argsv for some command line option which is not given
-    var argsvForNotGiven = try argsv.find(commands, "NotGiven");
-    std.debug.print(" Length = {} \n", .{argsvForNotGiven.getLength()});
+    //var argsvForNotGiven = try argsv.find(commands, "NotGiven");
+    var argsvForNotGiven = argsv.find(commands, "NotGiven");
+    //std.debug.print("Length = {} \n", .{argsvForNotGiven.getLength()});
+    std.debug.print("Length(Length of linked list a.k.a total types of command line options) = {} \n", .{argsvForNotGiven.getLength()});
     argsvForNotGiven.traverse();
+
+    // ----------------------------------------------------------------
+
+    while (argsv.next() == true) {
+        std.debug.print(" 1 ", .{});
+    }
 }

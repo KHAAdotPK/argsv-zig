@@ -8,8 +8,11 @@ pub const LinkedList = struct {
     arguments: ?*Arguments,
     allocator: ?*std.mem.Allocator,
     length: usize, // Number of links
+    currentLinkNumber: usize,
 
-    pub fn add(self: *LinkedList, i: usize, l: usize, t: usize, n: usize) !void {
+    pub const InitError = error{ OutOfMemory, InvalidCmdLine };
+
+    pub fn add(self: *LinkedList, i: usize, l: usize, t: usize, n: usize) InitError!void {
         if (self.arguments == null) {
             return;
         }
@@ -45,7 +48,7 @@ pub const LinkedList = struct {
         self.length = self.length + 1;
     }
 
-    pub fn find(self: *LinkedList, l: usize) !*Arguments {
+    pub fn find(self: *LinkedList, l: usize) InitError!*Arguments {
         var current: *Arguments = self.arguments.?;
         var node: *Arguments = try self.allocator.?.create(Arguments);
         node.* = Arguments{ .i = 0, .l = 0, .t = 0, .n = 0, .next = null, .prev = null };
@@ -121,6 +124,18 @@ pub const LinkedList = struct {
         }
 
         return Arguments{ .i = 0, .l = 0, .t = 0, .n = 0, .next = null, .prev = null };
+    }
+
+    pub fn next(self: *LinkedList) bool {
+        if (self.currentLinkNumber < self.size()) {
+            self.currentLinkNumber = self.currentLinkNumber + 1;
+
+            return true;
+        }
+
+        self.currentLinkNumber = 0;
+
+        return false;
     }
 
     pub fn size(self: *LinkedList) usize {
