@@ -58,5 +58,7 @@ pub fn main() !void {
 
     while (argsv.next() == true) {
         std.debug.print(" 1 ", .{});
+        _ = argsv.getArgIndex();
+        argsv.getArgOptions();
     }
 }

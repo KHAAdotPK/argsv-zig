@@ -99,6 +99,10 @@ pub const LinkedList = struct {
         }
     }
 
+    pub fn getCurrentLnkNumber(self: *LinkedList) usize {
+        return self.currentLinkNumber;
+    }
+
     pub fn getLength(self: *LinkedList) usize {
         return self.length;
     }

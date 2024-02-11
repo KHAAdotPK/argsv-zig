@@ -170,6 +170,11 @@ pub const Argsv = struct {
         return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0 }, .argc = 0 };
     }
 
+    pub fn getArgIndex(self: *Self) usize {
+        var arg: Arguments = self.ll.getLink(self.ll.getCurrentLnkNumber());
+        return arg.getIndex();
+    }
+
     pub fn getArgc(self: *Self) usize {
         return self.argc;
     }
@@ -185,6 +190,26 @@ pub const Argsv = struct {
 
     pub fn getLength(self: *Self) usize {
         return self.ll.size();
+    }
+
+    pub fn getArgOptions(self: *Self) Array[String]!void {
+        var arg: Arguments = self.ll.getLink(self.ll.getCurrentLnkNumber());
+        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        const gpaAllocator = gpa.allocator();
+        defer _ = gpa.deinit();
+
+        if (std.process.argsWithAllocator(gpaAllocator)) |argsToGetArgc| {
+            var argsToGetArgcCopy = argsToGetArgc;
+            defer argsToGetArgcCopy.deinit();
+            while (argsToGetArgcCopy.next()) |_| {
+                // I want to put each arg in the array of U8, how...
+            }
+        } else |err| switch (err) {
+            error.OutOfMemory => return,
+            error.InvalidCmdLine => return,
+        }
+
+        //std.debug.print(">-> {}\n", .{arg.getArgc()});
     }
 
     pub fn new(allocator: ?*std.mem.Allocator) Self {
