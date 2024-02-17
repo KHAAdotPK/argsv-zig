@@ -55,10 +55,26 @@ pub fn main() !void {
     argsvForNotGiven.traverse();
 
     // ----------------------------------------------------------------
-
+    var l: usize = 0;
+    var o: usize = 0;
     while (argsv.next() == true) {
+        l = l + 1;
         std.debug.print(" 1 ", .{});
         _ = argsv.getArgIndex();
-        argsv.getArgOptions();
+        std.debug.print("Argc = {}:", .{argsv.getArgArgc()});
+        //argsv.getArgOptions();
+
+        while (argsv.nextOption() == true) {
+            o = o + 1;
+            std.debug.print(" - ", .{});
+
+            const arg = try argsv.getArgOption(l, o);
+
+            std.debug.print("{s} ", .{arg});
+        }
+
+        o = 0;
+
+        std.debug.print("\n", .{});
     }
 }

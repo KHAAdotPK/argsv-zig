@@ -79,8 +79,11 @@ pub const Argsv = struct {
 
                         if (Parser.compareSlice(arg, token) == true) {
                             self.ll.add(i, l, t, self.getArgc() - i) catch |err| switch (err) {
-                                error.OutOfMemory => return,
-                                error.InvalidCmdLine => return,
+                                //error.OutOfMemory => return,
+                                //error.InvalidCmdLine => return,
+                                LinkedList.InitError.OutOfMemory => return,
+                                LinkedList.InitError.InvalidCmdLine => return,
+                                LinkedList.InitError.OverFlow => return,
                             };
                         }
                     }
@@ -103,7 +106,7 @@ pub const Argsv = struct {
         };
 
         if (parser.getLength(commands) == 0 or parser.getLength(command) == 0 or self.ll.size() == 0) {
-            return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0 }, .argc = 0 };
+            return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
             //return;
         }
 
@@ -138,13 +141,16 @@ pub const Argsv = struct {
 
                             local = local.next.?;
                         }
-                        return Argsv{ .ll = LinkedList{ .arguments = node, .allocator = null, .length = length, .currentLinkNumber = 0 }, .argc = 0 };
+                        return Argsv{ .ll = LinkedList{ .arguments = node, .allocator = null, .length = length, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
                     } else |err| switch (err) {
-                        error.OutOfMemory => {
-                            return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0 }, .argc = 0 };
+                        LinkedList.InitError.OutOfMemory => {
+                            return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
                         },
-                        error.InvalidCmdLine => {
-                            return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0 }, .argc = 0 };
+                        LinkedList.InitError.InvalidCmdLine => {
+                            return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
+                        },
+                        LinkedList.InitError.OverFlow => {
+                            return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
                         },
                     }
 
@@ -167,7 +173,7 @@ pub const Argsv = struct {
             }
         }
 
-        return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0 }, .argc = 0 };
+        return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
     }
 
     pub fn getArgIndex(self: *Self) usize {
@@ -192,24 +198,74 @@ pub const Argsv = struct {
         return self.ll.size();
     }
 
-    pub fn getArgOptions(self: *Self) Array[String]!void {
-        var arg: Arguments = self.ll.getLink(self.ll.getCurrentLnkNumber());
+    pub fn getArgArgc(self: *Self) usize {
+        return self.ll.getArgArgc();
+    }
+
+    pub fn getArgOption(self: *Self, l: usize, o: usize) LinkedList.InitError![]const u8 {
+        return self.ll.getArgOption(l, o);
+    }
+
+    //
+    pub fn getArgOptions(self: *Self) void {
+        var argument: Arguments = self.ll.getLink(self.ll.getCurrentLnkNumber());
         var gpa = std.heap.GeneralPurposeAllocator(.{}){};
         const gpaAllocator = gpa.allocator();
+        // Executes the given code, or block, on scope exit. "Scope exit" includes reaching the end of the scope or returning from the scope.
         defer _ = gpa.deinit();
 
         if (std.process.argsWithAllocator(gpaAllocator)) |argsToGetArgc| {
             var argsToGetArgcCopy = argsToGetArgc;
             defer argsToGetArgcCopy.deinit();
-            while (argsToGetArgcCopy.next()) |_| {
+
+            var dummyGPA = std.heap.GeneralPurposeAllocator(.{}){};
+            const dummyGPAllocator = dummyGPA.allocator();
+            defer _ = dummyGPA.deinit();
+
+            //var argArray = try std.ArrayList.init([]const u8).okOrOutError();
+            var outerArray: [][]*u8 = &.{};
+            //outerArray[0] = gpaAllocator.alloc(u8, 10);
+
+            if (dummyGPAllocator.alloc(*u8, 10)) |ptr| {
+                outerArray[0] = ptr;
+            } else |err| {
+                switch (err) {
+                    error.OutOfMemory => return,
+                }
+            }
+
+            //if (std.ArrayList.init([]const u8)) |_| {} else |err| switch (err) {}
+
+            var i: usize = 0;
+            var j: usize = 0;
+            var flag: bool = false;
+            while (argsToGetArgcCopy.next()) |arg| {
                 // I want to put each arg in the array of U8, how...
+
+                if (flag == true) {
+                    j = j + 1;
+                    if (j < argument.getArgc()) {
+                        std.debug.print(" {s} ", .{arg});
+                    } else {
+                        j = 0;
+                        flag = false;
+
+                        std.debug.print("\n", .{});
+                    }
+                }
+
+                if (argument.getIndex() == i) {
+                    std.debug.print("Found {} -> {s} and n = {} -> ", .{ argument.getIndex(), arg, argument.getArgc() });
+
+                    flag = true;
+                }
+
+                i = i + 1;
             }
         } else |err| switch (err) {
             error.OutOfMemory => return,
             error.InvalidCmdLine => return,
         }
-
-        //std.debug.print(">-> {}\n", .{arg.getArgc()});
     }
 
     pub fn new(allocator: ?*std.mem.Allocator) Self {
@@ -220,10 +276,10 @@ pub const Argsv = struct {
 
         if (allocator.?.create(Arguments)) |node| {
             node.* = Arguments{ .i = 0, .l = 0, .t = 0, .n = 0, .next = null, .prev = null };
-            return Argsv{ .ll = LinkedList{ .arguments = node, .allocator = allocator, .length = 0, .currentLinkNumber = 0 }, .argc = 0 };
+            return Argsv{ .ll = LinkedList{ .arguments = node, .allocator = allocator, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
         } else |err| switch (err) {
             error.OutOfMemory => {
-                return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0 }, .argc = 0 };
+                return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
             },
         }
 
@@ -234,6 +290,10 @@ pub const Argsv = struct {
 
     pub fn next(self: *Self) bool {
         return self.ll.next();
+    }
+
+    pub fn nextOption(self: *Self) bool {
+        return self.ll.nextOption();
     }
 
     pub fn traverse(self: *Self) void {

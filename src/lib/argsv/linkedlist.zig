@@ -9,8 +9,13 @@ pub const LinkedList = struct {
     allocator: ?*std.mem.Allocator,
     length: usize, // Number of links
     currentLinkNumber: usize,
+    currentOptionNumber: usize,
 
-    pub const InitError = error{ OutOfMemory, InvalidCmdLine };
+    pub const InitError = error{
+        OutOfMemory,
+        OverFlow,
+        InvalidCmdLine,
+    };
 
     pub fn add(self: *LinkedList, i: usize, l: usize, t: usize, n: usize) InitError!void {
         if (self.arguments == null) {
@@ -99,6 +104,34 @@ pub const LinkedList = struct {
         }
     }
 
+    pub fn getArgArgc(self: *LinkedList) usize {
+        var argument: Arguments = self.getLink(self.getCurrentLnkNumber());
+
+        return argument.getArgc();
+    }
+
+    pub fn getArgOption(self: *LinkedList, l: usize, o: usize) InitError![]const u8 {
+        //try self.getOption(l, o) catch |err| switch (err) {};
+
+        //if (self.getOption(l, o)) |_| {} else |_| {}
+
+        const message = self.getOption(l, o) catch |err| switch (err) {
+            InitError.OutOfMemory => return InitError.OutOfMemory,
+            InitError.OverFlow => return InitError.OverFlow,
+            InitError.InvalidCmdLine => return InitError.InvalidCmdLine,
+        };
+
+        //if (self.getOption(l, o)) |arg| {
+        //    std.debug.print(" -> {s} ", .{arg});
+        //} else |err| switch (err) {
+        //    InitError.OutOfMemory => return,
+        //    InitError.InvalidCmdLine => return,
+        //    InitError.OverFlow => return,
+        //}
+
+        return message;
+    }
+
     pub fn getCurrentLnkNumber(self: *LinkedList) usize {
         return self.currentLinkNumber;
     }
@@ -130,6 +163,91 @@ pub const LinkedList = struct {
         return Arguments{ .i = 0, .l = 0, .t = 0, .n = 0, .next = null, .prev = null };
     }
 
+    pub fn getOption(self: *LinkedList, l: usize, o: usize) ![]const u8 {
+        var argument: Arguments = self.getLink(l);
+        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        const gpaAllocator = gpa.allocator();
+        // Executes the given code, or block, on scope exit. "Scope exit" includes reaching the end of the scope or returning from the scope.
+        defer _ = gpa.deinit();
+
+        const message = std.heap.page_allocator.dupe(u8, &[1]u8{'\n'}) catch |err| switch (err) {
+            error.OutOfMemory => return InitError.OutOfMemory,
+        };
+
+        if (std.process.argsAlloc(gpaAllocator)) |args| {
+            defer std.process.argsFree(gpaAllocator, args);
+
+            var i: usize = 0;
+            var j: usize = 0;
+            var flag: bool = false;
+            for (args) |arg| {
+                if (flag == true) {
+                    j = j + 1;
+                    if (j < argument.getArgc()) {
+                        //std.debug.print(" {s} ", .{arg});
+
+                        if (j == o) {
+                            //return message;
+                            //break;
+                            return try std.heap.page_allocator.dupe(u8, arg);
+                        }
+                    } else {
+                        j = 0;
+                        flag = false;
+
+                        //std.debug.print("\n", .{});
+                    }
+                }
+
+                if (argument.getIndex() == i) {
+                    //std.debug.print("Found {} -> {s} and n = {} -> ", .{ argument.getIndex(), arg, argument.getArgc() });
+
+                    flag = true;
+                }
+
+                i = i + 1;
+            }
+        } else |_| {
+            return InitError.OutOfMemory;
+        }
+        //defer std.process.argsFree(gpaAllocator, args);
+
+        //var i: usize = 0;
+        //var j: usize = 0;
+        //var flag: bool = false;
+        //for (args) |arg| {
+        //std.debug.print("{s} - ", .{arg});
+
+        //    if (flag == true) {
+        //        j = j + 1;
+        //        if (j < argument.getArgc()) {
+        //std.debug.print(" {s} ", .{arg});
+
+        //            if (j == o) {
+        //return message;
+        //break;
+        //                return try std.heap.page_allocator.dupe(u8, arg);
+        //            }
+        //        } else {
+        //            j = 0;
+        //            flag = false;
+
+        //std.debug.print("\n", .{});
+        //        }
+        //    }
+
+        //    if (argument.getIndex() == i) {
+        //std.debug.print("Found {} -> {s} and n = {} -> ", .{ argument.getIndex(), arg, argument.getArgc() });
+
+        //        flag = true;
+        //    }
+
+        //    i = i + 1;
+        //}
+
+        return message;
+    }
+
     pub fn next(self: *LinkedList) bool {
         if (self.currentLinkNumber < self.size()) {
             self.currentLinkNumber = self.currentLinkNumber + 1;
@@ -138,6 +256,18 @@ pub const LinkedList = struct {
         }
 
         self.currentLinkNumber = 0;
+
+        return false;
+    }
+
+    pub fn nextOption(self: *LinkedList) bool {
+        if (self.currentOptionNumber < self.getArgArgc()) {
+            self.currentOptionNumber = self.currentOptionNumber + 1;
+
+            return true;
+        }
+
+        self.currentOptionNumber = 0;
 
         return false;
     }
