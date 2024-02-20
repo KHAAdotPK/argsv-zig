@@ -10,6 +10,7 @@ pub const LinkedList = struct {
     length: usize, // Number of links
     currentLinkNumber: usize,
     currentOptionNumber: usize,
+    currentCommonOptionNumber: usize,
 
     pub const InitError = error{
         OutOfMemory,
@@ -113,7 +114,9 @@ pub const LinkedList = struct {
     pub fn getArgOption(self: *LinkedList, l: usize, o: usize) InitError![]const u8 {
         //try self.getOption(l, o) catch |err| switch (err) {};
 
-        //if (self.getOption(l, o)) |_| {} else |_| {}
+        //if (self.getOption(l, o)) |_| {} else |err| switch (err) {
+        //    InitError.InvalidCmdLine => return,
+        //}
 
         const message = self.getOption(l, o) catch |err| switch (err) {
             InitError.OutOfMemory => return InitError.OutOfMemory,
@@ -128,6 +131,39 @@ pub const LinkedList = struct {
         //    InitError.InvalidCmdLine => return,
         //    InitError.OverFlow => return,
         //}
+
+        return message;
+    }
+
+    pub fn getCommonArgc(self: *LinkedList) usize {
+        var argument: Arguments = self.getLink(1);
+
+        return argument.getIndex() - 1;
+    }
+
+    pub fn getCommonOption(self: *LinkedList) InitError![]const u8 {
+        const message = std.heap.page_allocator.dupe(u8, &[1]u8{'\n'}) catch |err| switch (err) {
+            error.OutOfMemory => return InitError.OutOfMemory,
+        };
+
+        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        const gpaAllocator = gpa.allocator();
+        // Executes the given code, or block, on scope exit. "Scope exit" includes reaching the end of the scope or returning from the scope.
+        defer _ = gpa.deinit();
+
+        if (std.process.argsAlloc(gpaAllocator)) |args| {
+            defer std.process.argsFree(gpaAllocator, args);
+            var i: usize = 1;
+            for (args) |arg| {
+                if (i == self.currentCommonOptionNumber) {
+                    return try std.heap.page_allocator.dupe(u8, arg);
+                }
+
+                i = i + 1;
+            }
+        } else |_| {
+            return InitError.OutOfMemory;
+        }
 
         return message;
     }
@@ -269,6 +305,25 @@ pub const LinkedList = struct {
 
         self.currentOptionNumber = 0;
 
+        return false;
+    }
+
+    pub fn nextCommonOption(self: *LinkedList) bool {
+        var argument: Arguments = self.getLink(1);
+
+        if (argument.getIndex() > 1) {
+            if (self.currentCommonOptionNumber < argument.getIndex()) {
+                self.currentCommonOptionNumber = self.currentCommonOptionNumber + 1;
+
+                return true;
+            }
+        }
+
+        //std.debug.print(" Hello World {} \n", .{argument.getIndex()});
+
+        //std.debug.print("---------> {}", .{argument.getArgIndex()});
+
+        self.currentCommonOptionNumber = 1;
         return false;
     }
 

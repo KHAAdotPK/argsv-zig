@@ -106,7 +106,7 @@ pub const Argsv = struct {
         };
 
         if (parser.getLength(commands) == 0 or parser.getLength(command) == 0 or self.ll.size() == 0) {
-            return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
+            return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0, .currentCommonOptionNumber = 1 }, .argc = 0 };
             //return;
         }
 
@@ -141,16 +141,16 @@ pub const Argsv = struct {
 
                             local = local.next.?;
                         }
-                        return Argsv{ .ll = LinkedList{ .arguments = node, .allocator = null, .length = length, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
+                        return Argsv{ .ll = LinkedList{ .arguments = node, .allocator = null, .length = length, .currentLinkNumber = 0, .currentOptionNumber = 0, .currentCommonOptionNumber = 1 }, .argc = 0 };
                     } else |err| switch (err) {
                         LinkedList.InitError.OutOfMemory => {
-                            return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
+                            return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0, .currentCommonOptionNumber = 1 }, .argc = 0 };
                         },
                         LinkedList.InitError.InvalidCmdLine => {
-                            return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
+                            return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0, .currentCommonOptionNumber = 1 }, .argc = 0 };
                         },
                         LinkedList.InitError.OverFlow => {
-                            return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
+                            return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0, .currentCommonOptionNumber = 1 }, .argc = 0 };
                         },
                     }
 
@@ -173,7 +173,7 @@ pub const Argsv = struct {
             }
         }
 
-        return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
+        return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0, .currentCommonOptionNumber = 1 }, .argc = 0 };
     }
 
     pub fn getArgIndex(self: *Self) usize {
@@ -186,12 +186,26 @@ pub const Argsv = struct {
     }
 
     pub fn getCommonArgc(self: *Self) usize {
-        if (self.ll.size() > 0) {
-            var argument: Arguments = self.ll.getLink(1);
-            return argument.getIndex();
-        } else {
-            return self.getArgc();
-        }
+        //if (self.ll.size() > 0) {
+        //    var argument: Arguments = self.ll.getLink(1);
+        //    return argument.getIndex();
+        //} else {
+        //    return self.getArgc();
+        //}
+
+        return self.ll.getCommonArgc();
+    }
+
+    pub fn getCommonOption(self: *Self) LinkedList.InitError![]const u8 {
+        const message = self.ll.getCommonOption() catch |err| switch (err) {
+            LinkedList.InitError.OutOfMemory => LinkedList.InitError.OutOfMemory,
+            LinkedList.InitError.OverFlow => LinkedList.InitError.OverFlow,
+            LinkedList.InitError.InvalidCmdLine => LinkedList.InitError.InvalidCmdLine,
+        };
+
+        //std.debug.print("{s}\n", .{message});
+
+        return message;
     }
 
     pub fn getLength(self: *Self) usize {
@@ -206,7 +220,6 @@ pub const Argsv = struct {
         return self.ll.getArgOption(l, o);
     }
 
-    //
     pub fn getArgOptions(self: *Self) void {
         var argument: Arguments = self.ll.getLink(self.ll.getCurrentLnkNumber());
         var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -276,10 +289,10 @@ pub const Argsv = struct {
 
         if (allocator.?.create(Arguments)) |node| {
             node.* = Arguments{ .i = 0, .l = 0, .t = 0, .n = 0, .next = null, .prev = null };
-            return Argsv{ .ll = LinkedList{ .arguments = node, .allocator = allocator, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
+            return Argsv{ .ll = LinkedList{ .arguments = node, .allocator = allocator, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0, .currentCommonOptionNumber = 1 }, .argc = 0 };
         } else |err| switch (err) {
             error.OutOfMemory => {
-                return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0 }, .argc = 0 };
+                return Argsv{ .ll = LinkedList{ .arguments = null, .allocator = null, .length = 0, .currentLinkNumber = 0, .currentOptionNumber = 0, .currentCommonOptionNumber = 1 }, .argc = 0 };
             },
         }
 
@@ -294,6 +307,10 @@ pub const Argsv = struct {
 
     pub fn nextOption(self: *Self) bool {
         return self.ll.nextOption();
+    }
+
+    pub fn nextCommonOption(self: *Self) bool {
+        return self.ll.nextCommonOption();
     }
 
     pub fn traverse(self: *Self) void {

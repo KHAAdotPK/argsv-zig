@@ -55,6 +55,15 @@ pub fn main() !void {
     argsvForNotGiven.traverse();
 
     // ----------------------------------------------------------------
+
+    while (argsv.nextCommonOption()) {
+        std.debug.print(" HELLO WORLD \n", .{});
+
+        const message = try argsv.getCommonOption();
+
+        std.debug.print("--> {s} \n", .{message});
+    }
+
     var l: usize = 0;
     var o: usize = 0;
     while (argsv.next() == true) {
