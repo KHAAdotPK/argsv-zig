@@ -138,6 +138,11 @@ pub const LinkedList = struct {
     pub fn getCommonArgc(self: *LinkedList) usize {
         var argument: Arguments = self.getLink(1);
 
+        if (argument.getIndex() == 0) {
+            
+            return 0;
+        }
+        
         return argument.getIndex() - 1;
     }
 

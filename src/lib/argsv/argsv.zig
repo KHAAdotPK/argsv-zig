@@ -22,7 +22,7 @@ pub const Argsv = struct {
     //    try self.ll.add(19, 0, 0, 1);
     //}
 
-    pub fn build(self: *Self, commands: []const u8) void {
+    pub fn build(self: *Self, commands: []const u8) error {OutOfMemory, InvalidCmdLine} !void {
         var gpa = std.heap.GeneralPurposeAllocator(.{}){};
         const gpaAllocator = gpa.allocator();
         defer _ = gpa.deinit();
@@ -36,8 +36,11 @@ pub const Argsv = struct {
                 self.argc = self.argc + 1;
             }
         } else |err| switch (err) {
-            error.OutOfMemory => return,
-            error.InvalidCmdLine => return,
+            error.OutOfMemory => return error.OutOfMemory,
+
+            // The compile error occurs because std.process.argsWithAllocator only returns error{OutOfMemory} in its error set.
+            // The code is trying to handle and return error.InvalidCmdLine from it, which the compiler identifies as an invalid member of that specific error set.
+            //error.InvalidCmdLine => return error.InvalidCmdLine,
         }
 
         //while (argsToGetArgc.next()) |_| {
@@ -79,11 +82,11 @@ pub const Argsv = struct {
 
                         if (Parser.compareSlice(arg, token) == true) {
                             self.ll.add(i, l, t, self.getArgc() - i) catch |err| switch (err) {
-                                //error.OutOfMemory => return,
-                                //error.InvalidCmdLine => return,
-                                LinkedList.InitError.OutOfMemory => return,
-                                LinkedList.InitError.InvalidCmdLine => return,
-                                LinkedList.InitError.OverFlow => return,
+                                //error.OutOfMemory => return error.OutOfMemory,
+                                //error.InvalidCmdLine => return error.InvalidCmdLine,
+                                LinkedList.InitError.OutOfMemory => return error.OutOfMemory,
+                                LinkedList.InitError.InvalidCmdLine => return error.InvalidCmdLine,
+                                LinkedList.InitError.OverFlow => return error.OutOfMemory,
                             };
                         }
                     }
@@ -94,8 +97,10 @@ pub const Argsv = struct {
             }
             break;
         } else |err| switch (err) {
-            error.OutOfMemory => return,
-            error.InvalidCmdLine => return,
+            error.OutOfMemory => return error.OutOfMemory,
+            // The compile error occurs because std.process.argsWithAllocator only returns error{OutOfMemory} in its error set.
+            // The code is trying to handle and return error.InvalidCmdLine from it, which the compiler identifies as an invalid member of that specific error set.
+            //error.InvalidCmdLine => return error.InvalidCmdLine,
         }
     }
 
