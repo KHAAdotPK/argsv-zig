@@ -1,7 +1,7 @@
 ### argsv-zig
 A Zig command line argument processing library
 
-#### Example
+#### Example 1
 
 ```zig
 const std = @import("std");
@@ -86,6 +86,63 @@ pub fn main() !void {
 
         std.debug.print("\n", .{});
     }
+} 
+```
+
+#### Example 2
+
+```zig
+const std = @import("std");
+const Argsv = @import("argsv");
+
+const commands = "h,-h,(Displays the help screen)\nv,-v,verbose,(Does the detailed output)\nf,-f,(This option expects a full path of the file)";
+
+// !void: Returns nothing on success, but can return an error.
+// You can also explicitly state the error set. For example, MyError!void means the function can only return errors defined in MyError or a void value.
+// In the absence of explicit MyError, the compiler will infer the error set based on the return statements in the function.
+pub fn main() !void {
+
+    // Boiler plate code
+
+    // 1. Setup Allocator
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    var arenaAllocator = arena.allocator();
+
+    // 2. GET ARGV / ARGC EQUIVALENT
+    // argsAlloc returns a slice ([][]const u8)
+    const args = try std.process.argsAlloc(arenaAllocator);
+    // Note: Since we use Arena, we don't strictly need argsFree, 
+    // but it's good practice.
+    defer std.process.argsFree(arenaAllocator, args);
+
+    //const argc = args.len;     // argc equivalent
+    const argv = args;         // argv equivalent (can access as argv[0], etc.)
+
+    // Instantiate command line processor
+    var argsv = Argsv.Argsv.new(&arenaAllocator);   
+
+    argsv.build(commands) catch |err| switch (err) {
+        error.OutOfMemory => return error.OutOfMemory,
+        error.InvalidCmdLine => return error.InvalidCmdLine,
+    };
+
+    var argsvForFile = argsv.find(commands, "-f"); 
+
+    var fName: []const u8 = "";
+
+    if (argsvForFile.index() != 0) {
+        if (argsvForFile.n() > 1) {
+            fName = argv[argsvForFile.index() + 1];
+        } else {
+            std.debug.print("{s}\n", .{argsvForFile.help(commands)});            
+            return;
+        }
+    }
+
+    std.debug.print("{s}\n", .{fName});
+
+    argsvForFile.traverse();    
 } 
 ```
 

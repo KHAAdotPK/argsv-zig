@@ -325,6 +325,25 @@ pub const Argsv = struct {
         return helpText;
     }
 
+    pub fn index(self: *Self) usize {
+
+        var current: *Arguments = self.ll.arguments orelse return 0;
+
+        const i = current.getIndex();
+
+        return i;
+    }
+
+    // Argument count
+    pub fn n(self: *Self) usize {
+     
+        var current: *Arguments = self.ll.arguments orelse return 0;
+
+        const m = current.getArgc();
+
+        return m;        
+    }
+
     pub fn next(self: *Self) bool {
         return self.ll.next();
     }
