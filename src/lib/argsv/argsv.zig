@@ -305,6 +305,25 @@ pub const Argsv = struct {
         //node.* = Arguments{ .i = 0, .l = 0, .t = 0, .n = 0, .next = null, .prev = null };
         //return Argsv{ .ll = LinkedList{ .arguments = node, .allocator = allocator, .length = 0, .currentLinkNumber = 0 }, .argc = 0 };
     }
+    
+    pub fn help(self: *Self, commands: []const u8) []const u8 {
+        var parser = Parser {
+            .currentLineNumber = 0,
+            .currentTokenNumber = 0,
+        };
+         
+        var current: *Arguments = self.ll.arguments orelse return ""; 
+
+        const l = current.getLine();
+
+        std.debug.print("Line = {}\n", .{l});
+
+        const line = parser.getLineByNumber(commands, l);
+
+        const helpText = parser.getHelpText(line);
+
+        return helpText;
+    }
 
     pub fn next(self: *Self) bool {
         return self.ll.next();
@@ -320,5 +339,5 @@ pub const Argsv = struct {
 
     pub fn traverse(self: *Self) void {
         self.ll.traverse();
-    }
+    }    
 };
